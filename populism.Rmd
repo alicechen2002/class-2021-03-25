@@ -21,6 +21,63 @@ x <- trains %>%
   select(move_to_pop, treatment, age)
 ```
 
+#Wisdom
 
+What is the causal effect of the treatment on the probability of becoming more populist?
+
+-The inquiry question does not specify the exact population we are studying (do we care about children? non-American residents/travellers)
+- Be cautious about generalizing
+Is our sample population of people in 2012 representative of the general population of in 2021?
+- People at trains stations may be of certain demographic (age, race, income, etc)
+-Train stations selected in MA, which is a liberal state
+-Study conducted in 2012, but we want to predict the probability and treatment on people in 2021
+
+#Justice
+
+- We have 3 parameters: treatment, control, and error
+-MAD_SD is a more specialized term (Median Absolute Dev)
+-SD also a measure of spread
+-We use MAD_SD because it's more robust to outliers
+
+#Courage
+- Fit the model with stan_glm()
+
+```{r}
+
+fit_1 <- stan_glm(data = x,
+                  formula = move_to_pop ~ treatment,
+                  family = binomial,
+                  seed = 76,
+                  refresh = 0)
+fit_1
+
+```
+
+```{r}
+newobs <- tibble(treatment = c("Control", "Treated"))
+
+posterior_epred(fit_1,
+                newdata = newobs) %>%
+  as_tibble() %>%
+  mutate(ate = `2` - `1`)
+```
+```{r}
+
+newobs2 <- tibble(treatment = c(rep("Treated", 25)))
+newobs2
+posterior_predict(fit_1,
+                  newdata = newobs2) %>%
+  as_tibble() %>%
+  mutate_all(as.numeric) %>%
+  rowwise() %>%
+  mutate(total = sum(c_across())) %>%
+  ggplot(aes(x = total)) +
+  geom_histogram(aes(y = after_stat(count/sum(count))),
+                   bins = 100) +
+    scale_x_continuous(labels = scales::number_format(accuracy = 1)) +
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1)) 
+
+
+```
 
 
